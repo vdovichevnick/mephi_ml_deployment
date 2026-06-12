@@ -1,0 +1,48 @@
+services:
+  # ML-сервис
+  ml-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: credit-default-api:v1
+    container_name: credit_default_api
+    ports:
+      - "5010:5010"
+    environment:
+      - PORT=5010
+      - FLASK_DEBUG=false
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app/app
+    volumes:
+      - ./models:/app/models:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5010/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ml-network
+
+  # Nginx: reverse proxy + логирование входящих запросов
+  # Концепт: в production здесь были бы подключены Filebeat → Elasticsearch → Kibana
+  # для сбора и визуализации access-логов в реальном времени.
+  # Сейчас логи пишутся в stdout контейнера: docker logs credit_default_nginx
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: credit_default_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - ml-api
+    restart: unless-stopped
+    networks:
+      - ml-network
+
+networks:
+  ml-network:
+    driver: bridge

@@ -9,21 +9,20 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import (
-    classification_report, f1_score, precision_score,
-    recall_score, roc_auc_score, confusion_matrix
-)
+from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
+# Конфигурация
 DATA_PATH = os.environ.get(
     "DATA_PATH",
     "/Users/nikitavdovichev/Documents/5 курс/ВнедрениеМоделейМЛ/data/UCI_Credit_Card.csv",
 )
+# Модели сохраняются рядом с этим скриптом (папка models/)
 MODELS_DIR = os.path.join(os.path.dirname(__file__))
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
@@ -37,6 +36,7 @@ FEATURE_COLS = [
 TARGET_COL = "default.payment.next.month"
 
 
+# Загрузка и предобработка данных
 def load_data(path: str) -> pd.DataFrame:
     logger.info(f"Загрузка данных из {path}")
     df = pd.read_csv(path)
@@ -54,6 +54,7 @@ def preprocess(df: pd.DataFrame):
     return X, y
 
 
+# Оценка качества модели
 def evaluate(model, X_test, y_test, model_name: str) -> dict:
     y_pred = model.predict(X_test)
     y_proba = model.predict_proba(X_test)[:, 1]
@@ -67,7 +68,7 @@ def evaluate(model, X_test, y_test, model_name: str) -> dict:
     logger.info(f"[{model_name}] Метрики: {metrics}")
     return metrics
 
-
+# Сохранение моделей и метрик
 def save_model(model, path: str):
     with open(path, "wb") as f:
         pickle.dump(model, f)
@@ -79,7 +80,7 @@ def save_metrics(metrics: dict, path: str):
         json.dump(metrics, f, indent=2)
     logger.info(f"Метрики сохранены: {path}")
 
-
+# Обучение моделей
 def train_v1(X_train, y_train) -> Pipeline:
     """v1 — LogisticRegression с StandardScaler."""
     pipeline = Pipeline([
@@ -117,6 +118,8 @@ def main():
 
     df = load_data(DATA_PATH)
     X, y = preprocess(df)
+
+    # Стратификация сохраняет долю дефолтов в train и test одинаковой
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y
     )
@@ -135,6 +138,7 @@ def main():
     save_model(model_v2, os.path.join(MODELS_DIR, "model_v2.pkl"))
     save_metrics(metrics_v2, os.path.join(MODELS_DIR, "metrics_v2.json"))
 
+    # Метаданные о признаках — нужны сервису для валидации входных данных
     feature_meta = {"feature_cols": FEATURE_COLS, "target_col": TARGET_COL}
     with open(os.path.join(MODELS_DIR, "feature_meta.json"), "w") as f:
         json.dump(feature_meta, f, indent=2)

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Загружаем обе модели при старте
+# Обе модели загружаются один раз в память при запуске процесса.
 MODELS = {}
 for v in ("v1", "v2"):
     try:
@@ -19,6 +19,7 @@ for v in ("v1", "v2"):
         logger.warning(f"Модель {v} не найдена: {e}")
 
 
+# Эндпоинты
 @app.route("/health", methods=["GET"])
 def health():
     """GET /health — возвращает статус сервиса и список загруженных моделей."""
@@ -48,13 +49,14 @@ def predict():
 
     Codes: 200 OK | 400 Bad Request | 503 Model Not Loaded
     """
+    # Валидация параметра версии
     version = request.args.get("version", "v1")
     if version not in ("v1", "v2"):
         return jsonify({"error": "version должен быть 'v1' или 'v2'"}), 400
-
+    # Проверяем что модель успешно загрузилась при старте
     if version not in MODELS:
         return jsonify({"error": f"Модель {version} не загружена. Запустите train_model.py"}), 503
-
+    # Парсим тело запроса — silent=True возвращает None вместо исключения
     data = request.get_json(silent=True)
     if data is None:
         return jsonify({"error": "Тело запроса должно быть валидным JSON"}), 400
@@ -65,6 +67,7 @@ def predict():
         logger.info(f"Предсказание: version={version} result={result}")
         return jsonify(result), 200
     except ValueError as e:
+        # ValueError бросается из preprocess_input при отсутствующих признаках
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         logger.error(f"Ошибка предсказания: {e}", exc_info=True)

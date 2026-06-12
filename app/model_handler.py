@@ -8,8 +8,11 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+# Путь к папке models/ относительно этого файла (app/../models)
 MODELS_DIR = os.path.join(os.path.dirname(__file__), "..", "models")
 
+# Порядок признаков должен совпадать с тем, в котором обучалась модель.
+# Изменение порядка без переобучения сломает предсказания.
 FEATURE_COLS = [
     "LIMIT_BAL", "SEX", "EDUCATION", "MARRIAGE", "AGE",
     "PAY_0", "PAY_2", "PAY_3", "PAY_4", "PAY_5", "PAY_6",
@@ -44,6 +47,7 @@ class ModelHandler:
     def predict(self, features: np.ndarray) -> Dict:
         """Возвращает предсказание и вероятность."""
         prediction = int(self.model.predict(features)[0])
+        # predict_proba возвращает [P(класс=0), P(класс=1)] — берём вероятность дефолт
         probability = float(self.model.predict_proba(features)[0][1])
         return {
             "prediction": prediction,
