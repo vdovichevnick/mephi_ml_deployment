@@ -98,7 +98,19 @@ https://hub.docker.com/r/vdovichev/credit-default-api/tags
 docker pull vdovichev/credit-default-api:v1
 docker run -p 6001:5010 vdovichev/credit-default-api:v1
 curl http://localhost:6001/health
+curl -X POST "http://localhost:6001/predict?version=v2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "LIMIT_BAL": 20000, "SEX": 2, "EDUCATION": 2, "MARRIAGE": 1, "AGE": 24,
+    "PAY_0": 2, "PAY_2": 2, "PAY_3": -1, "PAY_4": -1, "PAY_5": -2, "PAY_6": -2,
+    "BILL_AMT1": 3913, "BILL_AMT2": 3102, "BILL_AMT3": 689,
+    "BILL_AMT4": 0, "BILL_AMT5": 0, "BILL_AMT6": 0,
+    "PAY_AMT1": 0, "PAY_AMT2": 689, "PAY_AMT3": 0,
+    "PAY_AMT4": 0, "PAY_AMT5": 0, "PAY_AMT6": 0
+  }'
 ```
+Доказательство что образ скачивается и работает:  
+![Доказательство работы](working.png)
 
 ## Структура
 
@@ -111,4 +123,5 @@ credit-card-ml-deployment/
 ├── requirements.txt
 ├── ab_test_plan.md
 ├── architecture.md
+├── working.png
 └── README.md
